@@ -64,9 +64,9 @@ public class AutoDrive extends LinearOpMode {
 
         // Step through each leg of the path,
         // Note: Reverse movement is obtained by setting a negative distance (not speed)
-        encoderDrive(DRIVE_SPEED,  48,  48, 5.0);  // S1: Forward 47 Inches with 5 Sec timeout
-        encoderDrive(TURN_SPEED,   12, -12, 4.0);  // S2: Turn Right 12 Inches with 4 Sec timeout
-        encoderDrive(DRIVE_SPEED, -24, -24, 4.0);  // S3: Reverse 24 Inches with 4 Sec timeout
+        //encoderDrive(DRIVE_SPEED,  48,  48, 5.0);  // S1: Forward 47 Inches with 5 Sec timeout
+        //encoderDrive(TURN_SPEED,   12, -12, 4.0);  // S2: Turn Right 12 Inches with 4 Sec timeout
+        //encoderDrive(DRIVE_SPEED, -24, -24, 4.0);  // S3: Reverse 24 Inches with 4 Sec timeout
 
         telemetry.addData("Path", "Complete");
         telemetry.update();
@@ -81,6 +81,61 @@ public class AutoDrive extends LinearOpMode {
      *  2) Move runs out of time
      *  3) Driver stops the OpMode running.
      */
+    public void EncoderDrive(Hardware robot, double speed, double inches, double angleRad, double timeoutS) {
+        int newTargetY;
+        int newTargetX;
+
+        if (opModeIsActive()) {
+            // Determine new target position, and pass to motor controller
+            newTargetY = (int)(inches * Math.sin(angleRad));
+            newTargetX = (int)(inches * Math.cos(angleRad));
+            robot.fl.setTargetPosition(newTargetY + newTargetX);
+            robot.fr.setTargetPosition(newTargetY - newTargetX);
+            robot.bl.setTargetPosition(newTargetY - newTargetX);
+            robot.br.setTargetPosition(newTargetY + newTargetX);
+
+            // Turn on RUN_TO_POSITION
+            robot.fl.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            robot.fr.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            robot.bl.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            robot.br.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+            // Reset the timeout time and start motion
+            runtime.reset();
+            robot.fl.setPower(Math.abs(speed));
+            robot.fr.setPower(Math.abs(speed));
+            robot.bl.setPower(Math.abs(speed));
+            robot.br.setPower(Math.abs(speed));
+
+            // keep looping while we are still active, and there is time left, and both motors are running.
+            // Note: We use (isBusy() && isBusy()) in the loop test, which means that when EITHER motor hits
+            // its target position, the motion will stop.  This is "safer" in the event that the robot will
+            // always end the motion as soon as possible.
+            // However, if you require that BOTH motors have finished their moves before the robot continues
+            // onto the next step, use (isBusy() || isBusy()) in the loop test.
+            boolean motorsBusy = (robot.fl.isBusy() && robot.fr.isBusy()) && (robot.bl.isBusy() && robot.br.isBusy());
+            while (opModeIsActive() &&
+                    (runtime.seconds() < timeoutS) &&
+                    (motorsBusy)) {
+
+                // Display it for the driver.
+                telemetry.addData("Running to: ",  "FL: %d, FR: %d, BL: %d, BR: %d",
+                        newTargetY + newTargetX,
+                        newTargetY - newTargetX,
+                        newTargetY - newTargetX,
+                        newTargetY + newTargetX);
+                telemetry.addData("Currently at",  "FL: %d, FR: %d, BL: %d, BR: %d",
+                        robot.fl.getCurrentPosition(),
+                        robot.fr.getCurrentPosition(),
+                        robot.bl.getCurrentPosition(),
+                        robot.br.getCurrentPosition());
+                telemetry.update();
+            }
+
+        }
+    }
+
+    /*
     public void encoderDrive(double speed,
                              double leftInches, double rightInches,
                              double timeoutS) {
@@ -132,5 +187,5 @@ public class AutoDrive extends LinearOpMode {
 
             sleep(250);   // optional pause after each move.
         }
-    }
+    }*/
 }
