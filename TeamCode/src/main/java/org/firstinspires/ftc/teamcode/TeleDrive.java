@@ -30,18 +30,9 @@ public class TeleDrive extends LinearOpMode {
         double x  = gp1.left_stick_x;  // Strafe left/right
         double rx = gp1.right_stick_x; // Rotate
 
-        // Format: ( vector_forward - vector_right) + turn_direction
-        // Left motors
-        double fl_power = (y + x) + rx;
-        double bl_power = (y - x) + rx;
-
-        // Right motors
-        double fr_power = (y - x) - rx;
-        double br_power = (y + x) - rx;
-
-        robot.fl.setPower(fl_power);
-        robot.fr.setPower(fr_power);
-        robot.bl.setPower(bl_power);
-        robot.br.setPower(br_power);
+        robot.fl.setPower(y - x + rx);
+        robot.fr.setPower(y + x - rx);
+        robot.bl.setPower(y - x + rx);
+        robot.br.setPower(y + x - rx);
     }
 }

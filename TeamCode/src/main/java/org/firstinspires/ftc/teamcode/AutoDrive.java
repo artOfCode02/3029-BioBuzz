@@ -13,11 +13,9 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 public class AutoDrive extends LinearOpMode {
 
     /* Declare OpMode members. */
-    //private DcMotor leftDrive   = null;
     private final Hardware robot = new Hardware(hardwareMap);
-    //private DcMotor         rightDrive  = null;
 
-    private ElapsedTime runtime = new ElapsedTime();
+    private final ElapsedTime runtime = new ElapsedTime();
 
     // Calculate the COUNTS_PER_INCH for your specific drive train.
     // Go to your motor vendor website to determine your motor's COUNTS_PER_MOTOR_REV
@@ -30,22 +28,18 @@ public class AutoDrive extends LinearOpMode {
     static final double     WHEEL_DIAMETER_INCHES   = 4.0 ;     // For figuring circumference
     static final double     COUNTS_PER_INCH         = (COUNTS_PER_MOTOR_REV * DRIVE_GEAR_REDUCTION) /
             (WHEEL_DIAMETER_INCHES * 3.1415);
+    static final double     TRACK_WIDTH_INCHES      = 7;
     static final double     DRIVE_SPEED             = 0.6;
     static final double     TURN_SPEED              = 0.5;
 
     @Override
     public void runOpMode() {
 
-        //leftDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        //rightDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         robot.fl.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
         robot.fr.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
         robot.bl.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
         robot.br.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
 
-
-        //leftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        //rightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         robot.fl.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
         robot.fr.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
         robot.bl.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
@@ -64,7 +58,7 @@ public class AutoDrive extends LinearOpMode {
 
         // Step through each leg of the path,
         // Note: Reverse movement is obtained by setting a negative distance (not speed)
-        //encoderDrive(DRIVE_SPEED,  48,  48, 5.0);  // S1: Forward 47 Inches with 5 Sec timeout
+        EncoderDrive(robot,  DRIVE_SPEED,  48, 0.0, 5.0);  // S1: Forward 47 Inches with 5 Sec timeout
         //encoderDrive(TURN_SPEED,   12, -12, 4.0);  // S2: Turn Right 12 Inches with 4 Sec timeout
         //encoderDrive(DRIVE_SPEED, -24, -24, 4.0);  // S3: Reverse 24 Inches with 4 Sec timeout
 
@@ -87,12 +81,12 @@ public class AutoDrive extends LinearOpMode {
 
         if (opModeIsActive()) {
             // Determine new target position, and pass to motor controller
-            newTargetY = (int)(inches * Math.sin(angleRad));
-            newTargetX = (int)(inches * Math.cos(angleRad));
-            robot.fl.setTargetPosition(newTargetY + newTargetX);
-            robot.fr.setTargetPosition(newTargetY - newTargetX);
-            robot.bl.setTargetPosition(newTargetY - newTargetX);
-            robot.br.setTargetPosition(newTargetY + newTargetX);
+            newTargetY = (int)(inches * Math.sin(angleRad) * COUNTS_PER_INCH);
+            newTargetX = (int)(inches * Math.cos(angleRad) * COUNTS_PER_INCH);
+            robot.fl.setTargetPosition(robot.fl.getCurrentPosition() + newTargetY - newTargetX);
+            robot.fr.setTargetPosition(robot.fr.getCurrentPosition() + newTargetY + newTargetX);
+            robot.bl.setTargetPosition(robot.bl.getCurrentPosition() + newTargetY - newTargetX);
+            robot.br.setTargetPosition(robot.br.getCurrentPosition() + newTargetY + newTargetX);
 
             // Turn on RUN_TO_POSITION
             robot.fl.setMode(DcMotor.RunMode.RUN_TO_POSITION);
@@ -117,11 +111,13 @@ public class AutoDrive extends LinearOpMode {
             while (opModeIsActive() &&
                     (runtime.seconds() < timeoutS) &&
                     (motorsBusy)) {
+                // Update motorsBusy
+                motorsBusy = (robot.fl.isBusy() && robot.fr.isBusy()) && (robot.bl.isBusy() && robot.br.isBusy());
 
                 // Display it for the driver.
                 telemetry.addData("Running to: ",  "FL: %d, FR: %d, BL: %d, BR: %d",
-                        newTargetY + newTargetX,
                         newTargetY - newTargetX,
+                        newTargetY + newTargetX,
                         newTargetY - newTargetX,
                         newTargetY + newTargetX);
                 telemetry.addData("Currently at",  "FL: %d, FR: %d, BL: %d, BR: %d",
@@ -132,9 +128,37 @@ public class AutoDrive extends LinearOpMode {
                 telemetry.update();
             }
 
+            // Stop all motion
+            robot.fl.setPower(0);
+            robot.fr.setPower(0);
+            robot.bl.setPower(0);
+            robot.br.setPower(0);
+
+            // Turn off RUN_TO_POSITION
+            robot.fl.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+            robot.fr.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+            robot.bl.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+            robot.br.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+
+            // Pause after action
+            sleep(250);
         }
     }
 
+
+    // TODO: Need to know TRACK_WIDTH of robot for EncoderTurn()
+    /*
+    public void EncoderTurn(Hardware robot, double speed, double angleRad, double timeoutS) {
+        int newTargetL;
+        int newTargetR;
+
+        if (opModeIsActive()) {
+            // Determine new target position, then pass it to the robot
+            newTargetL = (int)()
+        }
+    }*/
+
+    // Deprecated function
     /*
     public void encoderDrive(double speed,
                              double leftInches, double rightInches,
